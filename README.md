@@ -7,6 +7,5 @@ but can be paired up with WIAFTMusic Module to provide 2 versions of the same mu
 instances of WIAFTM
 
 ## Features
-- [x] Inbuilt lavalink server instance 
-- [ ] Ability to use external lavalink server 
+- [x] Ability to use external lavalink server 
 - [ ] Add argument parsing with ArgPars
