@@ -24,7 +24,7 @@ class EnvDoesNotExist(Exception):
     def __str__(self):
         return f"{self.message}"
 
-client = commands.Bot(intents=discord.Intents.all(), command_prefix='!')
+#client = commands.Bot(intents=discord.Intents.all(), command_prefix='!')
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
 if not os.path.exists(".env"):
@@ -37,6 +37,15 @@ GUILD_ID = str(os.getenv("GUILD_ID"))
 USER_ID = str(os.getenv("USER_ID"))
 
 class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
+    def __init__(self, user_id, guild_id, channel=discord.abc.Connectable):
+        client = discord.ext.commands.Bot(intents=discord.Intents.all(), command_prefix='!')
+        self.client = client
+        self.channel = channel
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.player = None
+        #asyncio.run(self.initialize_lavalink())
+
     async def initialize_lavalink(self):
         self.client.lavalink = lavalink.Client(self.user_id)
         self.lavalink = self.client.lavalink
@@ -48,38 +57,51 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
             name="main-node"
         )
         print("Connected")
-
-    def __init__(self, client, user_id, guild_id, channel=discord.abc.Connectable):
-        self.client = client
-        self.channel = channel
-        self.guild_id = guild_id
-        self.user_id = user_id
-        #asyncio.run(self.initialize_lavalink())
+        print(f"{self.lavalink}")
+        return self.lavalink
+    
+    async def createLavalinkPlayer(self, ctx):
+        self.lavalink.player_manager.create(self.guild_id)
+        self.player = ctx.bot.lavalink.player_manager.create(self.guild_id)
 
     @commands.slash_command(name="ping", description="Checks bots latency")
     async def ping(self, ctx):
-        await ctx.respond(f'Pong! {round(client.latency * 1000)}ms')
+        await ctx.respond(f'Pong! {round(self.client.latency * 1000)}ms')
 
     @commands.slash_command(name="setup", description="Sets up the bot for the server")
     async def setup(self, ctx):
         self.guild_id = ctx.guild.id
-        self.user_id = client.user.id
+        self.user_id = self.client.user.id
         dotenv.set_key(".env", "GUILD_ID", str(self.guild_id), quote_mode="never")
         dotenv.set_key(".env", "USER_ID", str(self.user_id), quote_mode="never")
-        await ctx.respond(f"Guild ID set to {guild_id}")
+        await self.initialize_lavalink()
+        await ctx.respond(f"Guild ID set to {self.guild_id}")
+
+    @commands.slash_command(name="join", description="Bot will join what voice channel you are in", guild_ids=[GUILD_ID])
+    async def join(self, ctx):
+        if self.player == None:
+            await self.createLavalinkPlayer(ctx)
+        if ctx.author.voice is None:
+            return await ctx.respond("You currently arent in a voice channel")
+        voice_channel = ctx.author.voice.channel
+        await voice.channel.connect()
 
     @commands.slash_command(name="play", description="plays a song with the music bot")
     async def play(self, ctx):
-        ctx.respond("temp")
+        await ctx.respond("temp")
 
-@client.event
-async def on_ready():
-    print(f"Logged in as {client.user.name}")
-    print(f"{client.user.id}")
-    lpb = LavaPlayerBot(client, USER_ID, GUILD_ID)
-    await lpb.initialize_lavalink()
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print(self.client)
+        print(f"Logged in as {str(self.client.user.name)}")
+        print(f"{str(self.client.user.id)}")
+        asyncio.run(self.initialize_lavalink())
+    #lpb = LavaPlayerBot(client, USER_ID, GUILD_ID)
+    #await lpb.initialize_lavalink()
 
+lpb = LavaPlayerBot(USER_ID, GUILD_ID)
+lpb.client.add_cog(LavaPlayerBot(USER_ID, GUILD_ID))
+lpb.client.run(TOKEN)
 
-#LavaPlayerBot.initialize_lavalink(self=LavaPlayerBot)
-client.add_cog(LavaPlayerBot(client, USER_ID, GUILD_ID))
-client.run(TOKEN)
+#LavaPlayerBot.client.add_cog(LavaPlayerBot(client, USER_ID, GUILD_ID))
+#LavaPlayerBot.client.run(TOKEN)
