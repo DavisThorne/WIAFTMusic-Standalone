@@ -56,7 +56,7 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
         )
         print("Connected")
         print(f"{self.lavalink}")
-        await self.createLavalinkPlayer()
+        #await self.createLavalinkPlayer()
         return self.lavalink
     
     async def createLavalinkPlayer(self, ctx):
@@ -82,12 +82,19 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
             await self.createLavalinkPlayer(ctx)
         if ctx.author.voice is None:
             return await ctx.respond("You currently arent in a voice channel")
-        voice_client = ctx.voice_client
-        voice_channel = ctx.author.voice.channel
-        await voice_channel.connect()
-        
+        self.voice_client = ctx.voice_client
+        self.voice_channel = ctx.author.voice.channel
+        print(self.lavalink)
+        await self.voice_channel.connect()
+        await ctx.guild.change_voice_state(channel=self.voice_channel, self_mute=False, self_deaf=True)
+        await ctx.respond(f"Connected To {self.voice_channel}")
 
-    @commands.slash_command(name="play", description="plays a song with the music bot")
+    @commands.slash_command(name="leave", description="The bot will leave the voice channel", guild_ids=[GUILD_ID])
+    async def leave(self, ctx):
+        await self.voice_client.disconnect()
+        await ctx.respond(f"Disconnected from {self.voice_channel}")
+
+    @commands.slash_command(name="play", description="plays a song with the music bot", guild_ids=[GUILD_ID])
     async def play(self, ctx):
         await ctx.respond("temp")
 
@@ -96,7 +103,7 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
         print(self.client)
         print(f"Logged in as {str(self.client.user.name)}")
         print(f"{str(self.client.user.id)}")
-        await self.initialize_lavalink( )
+        await self.initialize_lavalink()
 
 lpb = LavaPlayerBot(USER_ID, GUILD_ID, client)
 lpb.client.add_cog(LavaPlayerBot(USER_ID, GUILD_ID, client))
