@@ -24,7 +24,7 @@ class EnvDoesNotExist(Exception):
     def __str__(self):
         return f"{self.message}"
 
-#client = commands.Bot(intents=discord.Intents.all(), command_prefix='!')
+client = commands.Bot(intents=discord.Intents.all(), command_prefix='!')
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
 if not os.path.exists(".env"):
@@ -37,14 +37,12 @@ GUILD_ID = str(os.getenv("GUILD_ID"))
 USER_ID = str(os.getenv("USER_ID"))
 
 class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
-    def __init__(self, user_id, guild_id, channel=discord.abc.Connectable):
-        client = discord.ext.commands.Bot(intents=discord.Intents.all(), command_prefix='!')
+    def __init__(self, user_id, guild_id, client, channel=discord.abc.Connectable):
         self.client = client
         self.channel = channel
         self.guild_id = guild_id
         self.user_id = user_id
         self.player = None
-        #asyncio.run(self.initialize_lavalink())
 
     async def initialize_lavalink(self):
         self.client.lavalink = lavalink.Client(self.user_id)
@@ -58,6 +56,7 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
         )
         print("Connected")
         print(f"{self.lavalink}")
+        await self.createLavalinkPlayer()
         return self.lavalink
     
     async def createLavalinkPlayer(self, ctx):
@@ -83,8 +82,10 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
             await self.createLavalinkPlayer(ctx)
         if ctx.author.voice is None:
             return await ctx.respond("You currently arent in a voice channel")
+        voice_client = ctx.voice_client
         voice_channel = ctx.author.voice.channel
-        await voice.channel.connect()
+        await voice_channel.connect()
+        
 
     @commands.slash_command(name="play", description="plays a song with the music bot")
     async def play(self, ctx):
@@ -95,13 +96,9 @@ class LavaPlayerBot(discord.VoiceProtocol, commands.Cog, name="LavaPlayer"):
         print(self.client)
         print(f"Logged in as {str(self.client.user.name)}")
         print(f"{str(self.client.user.id)}")
-        asyncio.run(self.initialize_lavalink())
-    #lpb = LavaPlayerBot(client, USER_ID, GUILD_ID)
-    #await lpb.initialize_lavalink()
+        await self.initialize_lavalink( )
 
-lpb = LavaPlayerBot(USER_ID, GUILD_ID)
-lpb.client.add_cog(LavaPlayerBot(USER_ID, GUILD_ID))
+lpb = LavaPlayerBot(USER_ID, GUILD_ID, client)
+lpb.client.add_cog(LavaPlayerBot(USER_ID, GUILD_ID, client))
 lpb.client.run(TOKEN)
 
-#LavaPlayerBot.client.add_cog(LavaPlayerBot(client, USER_ID, GUILD_ID))
-#LavaPlayerBot.client.run(TOKEN)
